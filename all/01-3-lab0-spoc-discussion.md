@@ -82,12 +82,77 @@ SETGATE(intr, 1,2,3,0);
 #### 练习一
 
 1. 请在ucore中找一段你认为难度适当的AT&T格式X86汇编代码，尝试解释其含义。
-
 2. (option)请在rcore中找一段你认为难度适当的RV汇编代码，尝试解释其含义。
+
+```asm
+.macro SAVE_ALL
+    # If coming from userspace, preserve the user stack pointer and load
+    # the kernel stack pointer. If we came from the kernel, sscratch
+    # will contain 0, and we should continue on the current stack.
+    csrrw sp, (xscratch), sp
+    bnez sp, _save_context
+_restore_kernel_sp:
+    csrr sp, (xscratch)
+    # sscratch = previous-sp, sp = kernel-sp
+_save_context:
+    # provide room for trap frame
+    addi sp, sp, -36 * XLENB
+    # save x registers except x2 (sp)
+    STORE x1, 1
+    STORE x3, 3
+    # tp(x4) = hartid. DON'T change.
+    # STORE x4, 4
+    STORE x5, 5
+    STORE x6, 6
+    STORE x7, 7
+    STORE x8, 8
+    STORE x9, 9
+    STORE x10, 10
+    STORE x11, 11
+    STORE x12, 12
+    STORE x13, 13
+    STORE x14, 14
+    STORE x15, 15
+    STORE x16, 16
+    STORE x17, 17
+    STORE x18, 18
+    STORE x19, 19
+    STORE x20, 20
+    STORE x21, 21
+    STORE x22, 22
+    STORE x23, 23
+    STORE x24, 24
+    STORE x25, 25
+    STORE x26, 26
+    STORE x27, 27
+    STORE x28, 28
+    STORE x29, 29
+    STORE x30, 30
+    STORE x31, 31
+
+    # get sp, sstatus, sepc, stval, scause
+    # set sscratch = 0
+    csrrw s0, (xscratch), x0
+    csrr s1, (xstatus)
+    csrr s2, (xepc)
+    csrr s3, (xtval)
+    csrr s4, (xcause)
+    # store sp, sstatus, sepc, sbadvaddr, scause
+    STORE s0, 2
+    STORE s1, 32
+    STORE s2, 33
+    STORE s3, 34
+    STORE s4, 35
+.endm
+```
+
+保存进程上下文，首先判断 sscratch 的内容，得知中断前特权是s还是u，然后配置内核态的sp，接着向栈上保存各个寄存器的内容，再读出几个csr：sscratch，sstatus，sepc，sbadvaddr，sscause然后也保存下来。
 
 #### 练习二
 
 宏定义和引用在内核代码中很常用。请枚举ucore或rcore中宏定义的用途，并举例描述其含义。
+
+上面练习一的代码段就是一段宏定义，里面又用到了 STORE 这个宏定义，这样可以减少代码重复，尤其是 rcore 为了支持不同的 riscv 平台，有一部分汇编指令不完全一样，这部分就可以通过宏来实现代码的复用。
 
 
 ## 问答题
