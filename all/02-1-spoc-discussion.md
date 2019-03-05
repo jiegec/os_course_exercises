@@ -19,21 +19,60 @@
 ## 第三讲 启动、中断、异常和系统调用-思考题
 
 ## 3.1 BIOS
--  请描述在“计算机组成原理课”上，同学们做的MIPS CPU是从按复位键开始到可以接收按键输入之间的启动过程。
--  x86中BIOS从磁盘读入的第一个扇区是是什么内容？为什么没有直接读入操作系统内核映像？
+- 请描述在“计算机组成原理课”上，同学们做的MIPS CPU是从按复位键开始到可以接收按键输入之间的启动过程。
+没有修该门课程。
+- x86中BIOS从磁盘读入的第一个扇区是是什么内容？为什么没有直接读入操作系统内核映像？
+MBR，含有一段代码和分区表。因为内核映像可能分布在硬盘的不同地方，这个逻辑较为复杂，故先运行mbr中的代码。
 - 比较UEFI和BIOS的区别。
+BIOS较早，但功能相对较弱，于是出现了UEFI，现在UEFI一定程度上可以代替BIOS的功能。
 - 理解rcore中的Berkeley BootLoader (BBL)的功能。
+配置m态的中断和设备，加载内核到s态，提供sbi接口。
 
 ## 3.2 系统启动流程
 
 - x86中分区引导扇区的结束标志是什么？
+0x55 0xAA
 - x86中在UEFI中的可信启动有什么作用？
+保证加载的内核是经过签名的，保证内核是没有被篡改的。
 - RV中BBL的启动过程大致包括哪些内容？
+配置外设（时钟、串口），配置 PMP （有的话），配置中断处理，加载内核，然后在s态运行内核。
 
 ## 3.3 中断、异常和系统调用比较
 - 什么是中断、异常和系统调用？
+中断一般指来自外部的一个事件，异常是执行代码时出现的非法操作，系统调用是通过软件中断的方式进行内核与用户态的通信。
 -  中断、异常和系统调用的处理流程有什么异同？
+同：入口是差不多的，有类似的处理流程。
+异：根据不同的类型，需要执行不同的处理代码。
 - 以ucore/rcore lab8的answer为例，ucore的系统调用有哪些？大致的功能分类有哪些？
+
+```
+static int (*syscalls[])(uint32_t arg[]) = {
+    [SYS_exit]              sys_exit,
+    [SYS_fork]              sys_fork,
+    [SYS_wait]              sys_wait,
+    [SYS_exec]              sys_exec,
+    [SYS_yield]             sys_yield,
+    [SYS_kill]              sys_kill,
+    [SYS_getpid]            sys_getpid,
+    [SYS_putc]              sys_putc,
+    [SYS_pgdir]             sys_pgdir,
+    [SYS_gettime]           sys_gettime,
+    [SYS_lab6_set_priority] sys_lab6_set_priority,
+    [SYS_sleep]             sys_sleep,
+    [SYS_open]              sys_open,
+    [SYS_close]             sys_close,
+    [SYS_read]              sys_read,
+    [SYS_write]             sys_write,
+    [SYS_seek]              sys_seek,
+    [SYS_fstat]             sys_fstat,
+    [SYS_fsync]             sys_fsync,
+    [SYS_getcwd]            sys_getcwd,
+    [SYS_getdirentry]       sys_getdirentry,
+    [SYS_dup]               sys_dup,
+};
+```
+
+文件，进程和调度。
 
 ## 3.4 linux系统调用分析
 - 通过分析[lab1_ex0](https://github.com/chyyuu/ucore_lab/blob/master/related_info/lab1/lab1-ex0.md)了解Linux应用的系统调用编写和含义。(仅实践，不用回答)
@@ -48,9 +87,11 @@
  
 ## 3.6 请分析函数调用和系统调用的区别
 - 系统调用与函数调用的区别是什么？
+系统调用通过软中断实现，参数一般通过寄存器传递。函数调用则是直接跳转，参数可以是寄存器也可以在栈上传递。
 - 通过分析x86中函数调用规范以及`int`、`iret`、`call`和`ret`的指令准确功能和调用代码，比较x86中函数调用与系统调用的堆栈操作有什么不同？
+系统调用的堆栈操作中有硬件实现的部分，包含了eip cs ss等内容。函数调用则是把返回地址压栈。
 - 通过分析RV中函数调用规范以及`ecall`、`eret`、`jal`和`jalr`的指令准确功能和调用代码，比较x86中函数调用与系统调用的堆栈操作有什么不同？
-
+系统调用的堆栈操作是软件实现的，epc等寄存器通过csr来保存。函数调用则是把返回地址写入寄存器。
 
 ## 课堂实践 （在课堂上根据老师安排完成，课后不用做）
 ### 练习一
